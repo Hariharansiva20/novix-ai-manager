@@ -1,0 +1,654 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Siva AI Manager</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0b1020;
+  --panel: #151d31;
+  --text: #f4f7ff;
+  --muted: #9ca9c4;
+  --accent: #7c5cff;
+  --border: #29344d;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.app {
+  max-width: 1050px;
+  margin: auto;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+h1 {
+  font-size: 25px;
+}
+
+h1 span {
+  color: #a99aff;
+}
+
+p, .muted {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 14px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.13);
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid #a99aff;
+  outline-offset: 2px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 18px;
+  border-radius: 17px;
+  min-width: 0;
+}
+
+.stat {
+  font-size: 30px;
+  font-weight: bold;
+  margin-top: 12px;
+}
+
+.section {
+  margin-top: 18px;
+}
+
+.section h2 {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  min-width: 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.form-row button {
+  flex-shrink: 0;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.task input {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+.task-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.done {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.delete {
+  background: #442331;
+  padding: 8px 10px;
+}
+
+.chat-box {
+  height: 245px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.message {
+  max-width: 90%;
+  padding: 12px;
+  border-radius: 12px;
+  background: #222d46;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: #4938a2;
+}
+
+.message.bot {
+  align-self: flex-start;
+}
+
+.progress {
+  height: 9px;
+  border-radius: 10px;
+  background: #29344d;
+  margin-top: 15px;
+  overflow: hidden;
+}
+
+.progress div {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #7c5cff, #35d6b0);
+  transition: width 0.25s;
+}
+
+#reminderStatus {
+  line-height: 1.6;
+}
+
+footer {
+  text-align: center;
+  padding: 25px 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 650px) {
+  body {
+    padding: 12px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  header {
+    align-items: flex-start;
+  }
+
+  h1 {
+    font-size: 21px;
+  }
+
+  .form-row {
+    flex-wrap: wrap;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <header>
+    <div>
+      <h1>🤖 Siva <span>AI Manager</span></h1>
+      <p>Un daily life-ku oru smart assistant da!</p>
+    </div>
+    <button id="themeBtn">🌙 Theme</button>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <p>📋 Total Tasks</p>
+      <div class="stat" id="total">0</div>
+    </div>
+
+    <div class="card">
+      <p>✅ Completed</p>
+      <div class="stat" id="completed">0</div>
+    </div>
+
+    <div class="card">
+      <p>🎯 Progress</p>
+      <div class="stat" id="percent">0%</div>
+      <div class="progress">
+        <div id="progressBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="card section">
+    <h2>📝 Task Manager</h2>
+
+    <form id="taskForm" class="form-row">
+      <input id="taskInput"
+        placeholder="Enna task seiyanum da?"
+        maxlength="150" required>
+      <button type="submit">+ Add</button>
+    </form>
+
+    <div id="taskList"></div>
+    <p id="emptyTasks">Tasks illaya? Oru pudhu task add pannu!</p>
+  </section>
+
+  <section class="card section">
+    <h2>⏰ Reminder Manager</h2>
+
+    <form id="reminderForm">
+      <div class="form-row">
+        <input id="reminderInput"
+          placeholder="Reminder enna?"
+          maxlength="150" required>
+        <input id="reminderTime"
+          type="datetime-local" required>
+      </div>
+      <button type="submit">Set Reminder 🔔</button>
+    </form>
+
+    <p id="reminderStatus">Un reminders inga display aagum.</p>
+    <div id="reminderList"></div>
+  </section>
+
+  <section class="card section">
+    <h2>💬 AI Chat Assistant</h2>
+    <p>Enna venumnaalum kelu da! Basic Tanglish replies ready.</p>
+
+    <div class="chat-box" id="chatBox" aria-live="polite">
+      <div class="message bot">
+        Vanakkam da! 👋 Naan un AI Manager.
+
+        "help", "tasks", "time", "motivate" nu type panni paaru!
+      </div>
+    </div>
+
+    <form id="chatForm" class="form-row">
+      <input id="chatInput"
+        placeholder="AI kitta pesu da..."
+        maxlength="500" required>
+      <button type="submit">Send ➤</button>
+    </form>
+  </section>
+
+  <footer>
+    Siva AI Manager • Built with ❤️ using HTML, CSS & JavaScript
+  </footer>
+
+</div>
+
+<script>
+// Data save panna localStorage use panrom da!
+const $ = id => document.getElementById(id);
+
+function loadData(key, fallback) {
+  try {
+    const data = JSON.parse(localStorage.getItem(key));
+    return Array.isArray(data) ? data : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+let tasks = loadData("siva_tasks", []);
+let reminders = loadData("siva_reminders", []);
+let dark = true;
+
+function saveData() {
+  try {
+    localStorage.setItem("siva_tasks", JSON.stringify(tasks));
+    localStorage.setItem("siva_reminders", JSON.stringify(reminders));
+  } catch {
+    alert("Storage full illa unavailable da. Data save aagala!");
+  }
+}
+
+// Dashboard update
+function updateDashboard() {
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.done).length;
+  const percent = total ? Math.round(completed / total * 100) : 0;
+
+  $("total").textContent = total;
+  $("completed").textContent = completed;
+  $("percent").textContent = percent + "%";
+  $("progressBar").style.width = percent + "%";
+}
+
+// HTML-la text safe-ah show panna
+function addText(parent, tag, text, className) {
+  const el = document.createElement(tag);
+  el.textContent = text;
+  if (className) el.className = className;
+  parent.appendChild(el);
+  return el;
+}
+
+// Task add / complete / delete
+function renderTasks() {
+  const list = $("taskList");
+  list.replaceChildren();
+  $("emptyTasks").hidden = tasks.length > 0;
+
+  tasks.forEach(task => {
+    const row = document.createElement("div");
+    row.className = "task";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = task.done;
+    checkbox.setAttribute("aria-label", "Complete " + task.name);
+
+    checkbox.addEventListener("change", () => {
+      task.done = checkbox.checked;
+      saveData();
+      renderTasks();
+    });
+
+    row.appendChild(checkbox);
+
+    addText(row, "span", task.name,
+      "task-name" + (task.done ? " done" : ""));
+
+    const del = addText(row, "button", "✕", "delete");
+    del.setAttribute("aria-label", "Delete " + task.name);
+
+    del.addEventListener("click", () => {
+      tasks = tasks.filter(t => t.id !== task.id);
+      saveData();
+      renderTasks();
+    });
+
+    list.appendChild(row);
+  });
+
+  updateDashboard();
+}
+
+$("taskForm").addEventListener("submit", e => {
+  e.preventDefault();
+
+  const name = $("taskInput").value.trim();
+  if (!name) return;
+
+  tasks.push({
+    id: Date.now() + Math.random(),
+    name,
+    done: false
+  });
+
+  $("taskInput").value = "";
+  saveData();
+  renderTasks();
+});
+
+// Reminder manager
+function renderReminders() {
+  const list = $("reminderList");
+  list.replaceChildren();
+
+  reminders.sort((a, b) => a.time - b.time);
+
+  reminders.forEach(reminder => {
+    const row = document.createElement("div");
+    row.className = "task";
+
+    const label = document.createElement("div");
+    label.className = "task-name";
+
+    addText(label, "strong", reminder.name);
+    addText(label, "p",
+      new Date(reminder.time).toLocaleString());
+
+    row.appendChild(label);
+
+    const del = addText(row, "button", "✕", "delete");
+    del.addEventListener("click", () => {
+      reminders = reminders.filter(r => r.id !== reminder.id);
+      saveData();
+      renderReminders();
+    });
+
+    list.appendChild(row);
+  });
+
+  if (!reminders.length) {
+    $("reminderStatus").textContent =
+      "Reminders illaya da. Pudhusaa set pannalaam!";
+  } else {
+    $("reminderStatus").textContent =
+      reminders.length + " reminder(s) saved.";
+  }
+}
+
+$("reminderForm").addEventListener("submit", e => {
+  e.preventDefault();
+
+  const name = $("reminderInput").value.trim();
+  const time = new Date($("reminderTime").value).getTime();
+
+  if (!name || !Number.isFinite(time) || time <= Date.now()) {
+    alert("Future time select pannu da!");
+    return;
+  }
+
+  reminders.push({
+    id: Date.now() + Math.random(),
+    name,
+    time,
+    notified: false
+  });
+
+  $("reminderInput").value = "";
+  saveData();
+  renderReminders();
+});
+
+// Reminder check: app open-ah irukkumbodhu work aagum
+async function checkReminders() {
+  const now = Date.now();
+  let changed = false;
+
+  for (const reminder of reminders) {
+    if (!reminder.notified && reminder.time <= now) {
+      reminder.notified = true;
+      changed = true;
+
+      alert("🔔 Reminder da!\n" + reminder.name);
+
+      if ("Notification" in window &&
+          Notification.permission === "granted") {
+        try {
+          new Notification("Siva AI Manager", {
+            body: reminder.name
+          });
+        } catch {}
+      }
+    }
+  }
+
+  if (changed) {
+    saveData();
+    renderReminders();
+  }
+}
+
+setInterval(checkReminders, 15000);
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) checkReminders();
+});
+
+// AI chat: basic offline response logic
+function getAIReply(message) {
+  const msg = message.toLowerCase().trim();
+
+  if (/\b(hi|hello|hey|vanakkam)\b/.test(msg)) {
+    return "Hey da! 😎 Sollu, enna help venum?";
+  }
+
+  if (msg.includes("help")) {
+    return "Naan help panren da! 💜\n\n" +
+      "• tasks — un tasks count\n" +
+      "• time — current time\n" +
+      "• motivate — motivation\n" +
+      "• clear — chat clear panna";
+  }
+
+  if (msg.includes("task")) {
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    return `Unakku ${total} tasks irukku da. ` +
+      `${done} complete pannita! 🔥`;
+  }
+
+  if (msg.includes("time") || msg.includes("date")) {
+    return "Ippo: " + new Date().toLocaleString() +
+      "\nTime-ku task plan pannu da! ⏰";
+  }
+
+  if (msg.includes("motivat")) {
+    return "🔥 Nee small steps edutha podhum da! " +
+      "Daily konjam improve aana, periya success kandippa " +
+      possibleGoal() + " Unnaala mudiyum!";
+  }
+
+  if (msg.includes("love")) {
+    return "Love-na care, trust, respect da ❤️";
+  }
+
+  if (msg.includes("thank")) {
+    return "Anytime da! 😊 Naan help panna ready.";
+  }
+
+  if (msg.includes("who are you") ||
+      msg.includes("nee yaar")) {
+    return "Naan Siva AI Manager da! 🤖 " +
+      "Tasks, reminders, basic chat-ku un assistant.";
+  }
+
+  return "Hmm da, un message purinjukitten. 😊 " +
+    "Aana naan ippo basic offline assistant mattum. " +
+    "Real AI maadhiri answer venumna AI API connect " +
+    "pannanum. 'help' nu type panni available commands paaru!";
+}
+
+function possibleGoal() {
+  return " 💪";
+}
+
+function addMessage(message, type) {
+  addText($("chatBox"), "div", message, "message " + type);
+  $("chatBox").scrollTop = $("chatBox").scrollHeight;
+}
+
+$("chatForm").addEventListener("submit", e => {
+  e.preventDefault();
+
+  const input = $("chatInput");
+  const message = input.value.trim();
+  if (!message) return;
+
+  addMessage(message, "user");
+  input.value = "";
+
+  if (message.toLowerCase() === "clear") {
+    $("chatBox").replaceChildren();
+    addMessage("Chat clear panniyachu da! Pudhusaa pesalaam. ✨", "bot");
+    return;
+  }
+
+  addMessage(getAIReply(message), "bot");
+});
+
+// Theme switch
+$("themeBtn").addEventListener("click", () => {
+  dark = !dark;
+
+  if (dark) {
+    document.documentElement.style.setProperty("--bg", "#0b1020");
+    document.documentElement.style.setProperty("--panel", "#151d31");
+    document.documentElement.style.setProperty("--text", "#f4f7ff");
+    document.documentElement.style.setProperty("--muted", "#9ca9c4");
+    document.documentElement.style.setProperty("--border", "#29344d");
+    $("themeBtn").textContent = "🌙 Theme";
+  } else {
+    document.documentElement.style.setProperty("--bg", "#f1f4fb");
+    document.documentElement.style.setProperty("--panel", "#ffffff");
+    document.documentElement.style.setProperty("--text", "#182139");
+    document.documentElement.style.setProperty("--muted", "#596781");
+    document.documentElement.style.setProperty("--border", "#dce2ee");
+    $("themeBtn").textContent = "☀️ Theme";
+  }
+});
+
+// Notification permission optional-ah request pannalaam
+if ("Notification" in window &&
+    Notification.permission === "default") {
+  // User button click pannumbodhu mattum permission request
+  const btn = document.createElement("button");
+  btn.textContent = "Enable Notifications 🔔";
+  btn.style.marginTop = "10px";
+  btn.addEventListener("click", async () => {
+    try {
+      await Notification.requestPermission();
+      btn.remove();
+    } catch {
+      alert("Notification support illa da.");
+    }
+  });
+  $("reminderStatus").after(btn);
+}
+
+// App start aagumbodhu saved data load aagum
+renderTasks();
+renderReminders();
+</script>
+</body>
+</html>
